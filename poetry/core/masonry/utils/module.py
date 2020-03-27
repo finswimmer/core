@@ -74,7 +74,17 @@ class Module:
             )
 
         for include in includes:
-            self._includes.append(Include(self._path, include))
+            if isinstance(include, str):
+                self._includes.append(Include(self._path, include))
+                continue
+
+            formats = include.get("format")
+            if formats and not isinstance(formats, list):
+                formats = [formats]
+
+            self._includes.append(
+                Include(self._path, include["include"], formats=formats)
+            )
 
     @property
     def name(self):  # type: () -> str

@@ -32,7 +32,7 @@ Summary: {summary}
 logger = logging.getLogger(__name__)
 
 
-class Builder(object):
+class Builder:
     AVAILABLE_PYTHONS = {"2", "2.7", "3", "3.4", "3.5", "3.6", "3.7"}
 
     format = None
@@ -61,11 +61,31 @@ class Builder(object):
 
             packages.append(p)
 
+        includes = []
+        for include in self._package.include:
+            if isinstance(include, str):
+                includes.append(include)
+                continue
+
+            formats = include.get("format", [])
+            if formats and not isinstance(formats, list):
+                formats = [formats]
+
+            if (
+                formats
+                and self.format
+                and self.format not in formats
+                and not ignore_packages_formats
+            ):
+                continue
+
+            includes.append(include)
+
         self._module = Module(
             self._package.name,
             self._path.as_posix(),
             packages=packages,
-            includes=self._package.include,
+            includes=includes,
         )
         self._meta = Metadata.from_package(self._package)
 
@@ -127,6 +147,15 @@ class Builder(object):
                     continue
 
                 if file.is_dir():
+                    if self.format == "sdist" or self.format in include.formats:
+                        for f in Path(file).glob("**/*"):
+                            included = f.relative_to(self._path)
+                            if (
+                                included not in to_add
+                                and not f.is_dir()
+                                and not self.is_excluded(included)
+                            ):
+                                to_add.append(included)
                     continue
 
                 file = file.relative_to(self._path)

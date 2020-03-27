@@ -387,7 +387,7 @@ def test_package_src():
 
 
 def test_package_with_include(mocker):
-    module_path = fixtures_dir / "with-include"
+    module_path = fixtures_dir / "with_include"
 
     # Patch git module to return specific excluded files
     p = mocker.patch("poetry.core.vcs.git.Git.get_ignored_files")
@@ -395,14 +395,14 @@ def test_package_with_include(mocker):
         str(
             Path(__file__).parent
             / "fixtures"
-            / "with-include"
+            / "with_include"
             / "extra_dir"
             / "vcs_excluded.txt"
         ),
         str(
             Path(__file__).parent
             / "fixtures"
-            / "with-include"
+            / "with_include"
             / "extra_dir"
             / "sub_pkg"
             / "vcs_excluded.txt"
@@ -411,7 +411,7 @@ def test_package_with_include(mocker):
     builder = CompleteBuilder(Factory().create_poetry(module_path))
     builder.build()
 
-    sdist = fixtures_dir / "with-include" / "dist" / "with-include-1.2.3.tar.gz"
+    sdist = fixtures_dir / "with_include" / "dist" / "with-include-1.2.3.tar.gz"
 
     assert sdist.exists()
 
