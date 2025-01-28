@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pytest
 
+from poetry.core.packages.dependency import Dependency
+from poetry.core.packages.vcs_dependency import VCSDependency
 from poetry.core.pyproject.exceptions import PyProjectError
 from poetry.core.pyproject.toml import PyProjectTOML
 from poetry.core.utils._compat import tomllib
@@ -120,3 +122,98 @@ def test_unparseable_pyproject_toml() -> None:
         "TOMLDecodeError: Cannot overwrite a value (at line 7, column 16)\n"
         "This is often caused by a duplicate entry"
     ) in str(excval.value)
+
+
+def test_get_dependencies_from_project(tmp_path: Path) -> None:
+    pyproject_toml = tmp_path / "pyproject.toml"
+    pyproject_toml.write_text(
+        """\
+        [project]
+        name="simple"
+        version="0.1.0"
+        dependencies = [
+            "foo",
+            "bar>=1.0",
+            "Foo_bar"
+        ]
+        """
+    )
+    pyproject = PyProjectTOML(pyproject_toml)
+    assert pyproject.get_dependencies() == [
+        Dependency(name="foo", constraint="*"),
+        Dependency(name="bar", constraint=">=1.0"),
+        Dependency(name="foo-bar", constraint="*"),
+    ]
+
+
+def test_get_dependencies_from_poetry(tmp_path: Path) -> None:
+    pyproject_toml = tmp_path / "pyproject.toml"
+    pyproject_toml.write_text(
+        """\
+        [tool.poetry]
+        name="simple"
+        version="0.1.0"
+
+        [tool.poetry.dependencies]
+        foo = "*"
+        bar = ">=1.0"
+        Foo_bar = { version = "*" }
+        """
+    )
+    pyproject = PyProjectTOML(pyproject_toml)
+
+    assert pyproject.get_dependencies() == [
+        Dependency(name="foo", constraint="*"),
+        Dependency(name="bar", constraint=">=1.0"),
+        Dependency(name="foo-bar", constraint="*"),
+    ]
+
+
+def test_get_dependencies_from_poetry_on_dynamic(tmp_path: Path) -> None:
+    pyproject_toml = tmp_path / "pyproject.toml"
+    pyproject_toml.write_text(
+        """\
+        [project]
+        name="simple"
+        version="0.1.0"
+        dynamic = ["dependencies"]
+
+        [tool.poetry.dependencies]
+        foo = "*"
+        bar = ">=1.0"
+        Foo_bar = { version = "*" }
+        """
+    )
+    pyproject = PyProjectTOML(pyproject_toml)
+
+    assert pyproject.get_dependencies() == [
+        Dependency(name="foo", constraint="*"),
+        Dependency(name="bar", constraint=">=1.0"),
+        Dependency(name="foo-bar", constraint="*"),
+    ]
+
+
+def test_get_dependencies_from_project_enrich(tmp_path: Path) -> None:
+    pyproject_toml = tmp_path / "pyproject.toml"
+    pyproject_toml.write_text(
+        """\
+        [project]
+        name="simple"
+        version="0.1.0"
+        dependencies = [
+            "foo",
+            "poetry @ git+https://github.com/python-poetry/poetry.git"
+        ]
+
+        [tool.poetry.dependencies]
+        poetry = { develop = true }
+        """
+    )
+    pyproject = PyProjectTOML(pyproject_toml)
+    dependencies = pyproject.get_dependencies()
+    assert len(dependencies) == 2
+
+    assert isinstance(dependencies[1], VCSDependency)
+    assert dependencies[1].name == "poetry"
+    assert dependencies[1]._source == "https://github.com/python-poetry/poetry.git"
+    assert dependencies[1]._develop is True

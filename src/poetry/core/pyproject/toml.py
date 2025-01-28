@@ -4,6 +4,8 @@ from contextlib import suppress
 from typing import TYPE_CHECKING
 from typing import Any
 
+from poetry.core.factory import Factory
+from poetry.core.packages.dependency import Dependency
 from poetry.core.pyproject.tables import BuildSystem
 from poetry.core.utils._compat import tomllib
 
@@ -79,6 +81,17 @@ class PyProjectTOML:
                 f"[tool.poetry] section not found in {self._path.as_posix()}"
             ) from e
 
+    @property
+    def project_config(self) -> dict[str, Any]:
+        try:
+            return self.data["project"]
+        except KeyError as e:
+            from poetry.core.pyproject.exceptions import PyProjectError
+
+            raise PyProjectError(
+                f"[project] section not found in {self._path.as_posix()}"
+            ) from e
+
     def is_poetry_project(self) -> bool:
         from poetry.core.pyproject.exceptions import PyProjectError
 
@@ -100,3 +113,27 @@ class PyProjectTOML:
                     return True
 
         return False
+
+    def has_project_config(self) -> bool:
+        return "project" in self.data
+
+    def dynamic_fields(self) -> list[str]:
+        return self.data.get("project", {}).get("dynamic", [])
+
+    def get_dependencies(self) -> list[Dependency]:
+        if self.has_project_config() and "dependencies" not in self.dynamic_fields():
+            return [
+                Dependency.create_from_pep_508(dep)
+                for dep in self.project_config.get("dependencies", [])
+            ]
+
+        return [
+            Factory.create_dependency(
+                constraint_name,
+                constraint,
+                root_dir=self.path.parent,
+            )
+            for constraint_name, constraint in self.poetry_config.get(
+                "dependencies", {}
+            ).items()
+        ]
