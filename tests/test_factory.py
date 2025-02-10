@@ -1060,3 +1060,98 @@ build-backend = "some.api.we.do.not.care.about"
     poetry = Factory().create_poetry(temporary_directory)
 
     assert set(poetry.build_system_dependencies) == expected
+
+
+def test_create_poetry_with_nested_dependency_groups(temporary_directory: Path) -> None:
+    pyproject_toml = temporary_directory / "pyproject.toml"
+    content = """\
+[project]
+name = "my-package"
+version = "1.2.3"
+
+[tool.poetry.group.testing.dependencies]
+pytest = "*"
+pytest-cov ="*"
+
+[tool.poetry.group.dev]
+include-groups = [
+    "testing",
+]
+[tool.poetry.group.dev.dependencies]
+black = "*"
+"""
+    pyproject_toml.write_text(content)
+    poetry = Factory().create_poetry(temporary_directory)
+
+    assert len(poetry.package.all_requires) == 5
+    assert [
+        (dep.name, ",".join(dep.groups)) for dep in poetry.package.all_requires
+    ] == [
+        ("pytest", "testing"),
+        ("pytest-cov", "testing"),
+        ("black", "dev"),
+        ("pytest", "dev"),
+        ("pytest-cov", "dev"),
+    ]
+
+
+def test_create_poetry_with_invalid_nested_dependency_groups(
+    temporary_directory: Path,
+) -> None:
+    pyproject_toml = temporary_directory / "pyproject.toml"
+    content = """\
+[project]
+name = "my-package"
+version = "1.2.3"
+
+[tool.poetry.group.testing]
+include-groups = [
+    "dev",
+]
+
+[tool.poetry.group.testing.dependencies]
+pytest = "*"
+pytest-cov ="*"
+
+[tool.poetry.group.dev]
+include-groups = [
+    "testing",
+]
+[tool.poetry.group.dev.dependencies]
+black = "*"
+"""
+    pyproject_toml.write_text(content)
+    with pytest.raises(RuntimeError) as error:
+        _ = Factory().create_poetry(temporary_directory)
+
+    expected = """\
+The Poetry configuration is invalid:
+  - Dependency group 'testing' includes itself.
+  - Dependency group 'dev' includes itself.
+"""
+    assert str(error.value) == expected
+
+
+def test_create_poetry_with_unknown_nested_dependency_groups(
+    temporary_directory: Path,
+) -> None:
+    pyproject_toml = temporary_directory / "pyproject.toml"
+    content = """\
+[project]
+name = "my-package"
+version = "1.2.3"
+
+[tool.poetry.group.dev]
+include-groups = [
+    "testing",
+]
+[tool.poetry.group.dev.dependencies]
+black = "*"
+"""
+    pyproject_toml.write_text(content)
+
+    with pytest.raises(
+        ValueError, match="Group 'dev' includes group 'testing' which is not defined"
+    ):
+        _ = Factory().create_poetry(fixtures_dir / "project_with_unknown_nested_group")
+        _ = Factory().create_poetry(temporary_directory)
