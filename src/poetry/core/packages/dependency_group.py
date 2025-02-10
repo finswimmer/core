@@ -3,6 +3,9 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import TYPE_CHECKING
 
+from poetry.core._vendor.packaging.utils import NormalizedName
+from poetry.core._vendor.packaging.utils import canonicalize_name
+
 from poetry.core.version.markers import parse_marker
 
 
@@ -22,6 +25,7 @@ class DependencyGroup:
         self._mixed_dynamic = mixed_dynamic
         self._dependencies: list[Dependency] = []
         self._poetry_dependencies: list[Dependency] = []
+        self._included_dependency_groups: dict[NormalizedName, DependencyGroup] = {}
 
     @property
     def name(self) -> str:
@@ -29,28 +33,34 @@ class DependencyGroup:
 
     @property
     def dependencies(self) -> list[Dependency]:
+        included_group_dependencies = self._resolve_included_dependency_groups()
+
         if not self._dependencies:
             # legacy mode
-            return self._poetry_dependencies
+            return self._poetry_dependencies + included_group_dependencies
         if self._mixed_dynamic and self._poetry_dependencies:
             if all(dep.is_optional() for dep in self._dependencies):
                 return [
                     *self._dependencies,
                     *(d for d in self._poetry_dependencies if not d.is_optional()),
+                    *included_group_dependencies,
                 ]
             if all(not dep.is_optional() for dep in self._dependencies):
                 return [
                     *self._dependencies,
                     *(d for d in self._poetry_dependencies if d.is_optional()),
+                    *included_group_dependencies,
                 ]
-        return self._dependencies
+        return self._dependencies + included_group_dependencies
 
     @property
     def dependencies_for_locking(self) -> list[Dependency]:
+        included_group_dependencies = self._resolve_included_dependency_groups()
+
         if not self._poetry_dependencies:
-            return self._dependencies
+            return self._dependencies + included_group_dependencies
         if not self._dependencies:
-            return self._poetry_dependencies
+            return self._poetry_dependencies + included_group_dependencies
 
         poetry_dependencies_by_name = defaultdict(list)
         for dep in self._poetry_dependencies:
@@ -81,7 +91,17 @@ class DependencyGroup:
             else:
                 dependencies.append(dep)
 
-        return dependencies
+        return dependencies + included_group_dependencies
+
+    def _resolve_included_dependency_groups(self) -> list[Dependency]:
+        resolved_dependencies = []
+        for dependency_group in self._included_dependency_groups.values():
+            for dependency in dependency_group.dependencies:
+                dep = dependency.clone()
+                dep.move_to_groups([self.name])
+                resolved_dependencies.append(dep)
+
+        return resolved_dependencies
 
     def is_optional(self) -> bool:
         return self._optional
@@ -113,6 +133,16 @@ class DependencyGroup:
                 continue
             dependencies.append(dependency)
         self._poetry_dependencies = dependencies
+
+    def include_dependency_group(self, dependency_group: DependencyGroup) -> None:
+        if canonicalize_name(dependency_group.name) in self._included_dependency_groups:
+            raise ValueError(
+                f"Dependency group {dependency_group.name} is already included"
+            )
+
+        self._included_dependency_groups[canonicalize_name(dependency_group.name)] = (
+            dependency_group
+        )
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, DependencyGroup):

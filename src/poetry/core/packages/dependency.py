@@ -329,6 +329,10 @@ class Dependency(PackageSpecification):
         dependency.constraint = constraint  # type: ignore[assignment]
         return dependency
 
+    def move_to_groups(self, groups: Iterable[str]) -> None:
+        """Reassign the dependency to the specified groups."""
+        self._groups = frozenset(groups)
+
     @classmethod
     def create_from_pep_508(
         cls, name: str, relative_to: Path | None = None
