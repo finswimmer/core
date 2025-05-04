@@ -1074,9 +1074,11 @@ build-backend = "some.api.we.do.not.care.about"
     assert set(poetry.build_system_dependencies) == expected
 
 
-def test_create_poetry_with_nested_dependency_groups(temporary_directory: Path) -> None:
-    pyproject_toml = temporary_directory / "pyproject.toml"
-    content = """\
+@pytest.mark.parametrize(
+    ("content"),
+    [
+        (
+            """\
 [project]
 name = "my-package"
 version = "1.2.3"
@@ -1092,18 +1094,42 @@ include-groups = [
 [tool.poetry.group.dev.dependencies]
 black = "*"
 """
+        ),
+        (
+            """\
+[project]
+name = "my-package"
+version = "1.2.3"
+
+[tool.poetry.group.dev]
+include-groups = [
+    "testing",
+]
+[tool.poetry.group.dev.dependencies]
+black = "*"
+
+[tool.poetry.group.testing.dependencies]
+pytest = "*"
+pytest-cov ="*"
+"""
+        ),
+    ],
+    ids=["in-order", "out-of-order"])
+def test_create_poetry_with_nested_dependency_groups(content: str, temporary_directory: Path) -> None:
+    pyproject_toml = temporary_directory / "pyproject.toml"
     pyproject_toml.write_text(content)
     poetry = Factory().create_poetry(temporary_directory)
 
     assert len(poetry.package.all_requires) == 5
-    assert [
-        (dep.name, ",".join(dep.groups)) for dep in poetry.package.all_requires
-    ] == [
-        ("pytest", "testing"),
-        ("pytest-cov", "testing"),
+    assert sorted(
+        [(dep.name, ",".join(dep.groups)) for dep in poetry.package.all_requires],
+        key = lambda x: x[0] + x[1],
+    ) == [
         ("black", "dev"),
-        ("pytest", "dev"),
         ("pytest-cov", "dev"),
+        ("pytest-cov", "testing"),
+        ("pytest", "dev"),
+        ("pytest", "testing"),
     ]
 
 
