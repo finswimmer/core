@@ -1310,6 +1310,62 @@ The Poetry configuration is invalid:
         temporary_directory=temporary_directory,
     )
 
+def test_create_poetry_with_shared_dependency_groups(
+    temporary_directory: Path,
+) -> None:
+    content = """\
+[project]
+name = "my-package"
+version = "1.2.3"
+
+[tool.poetry.group.root]
+include-groups = [
+    "child_1",
+    "child_2",
+]
+
+[tool.poetry.group.root.dependencies]
+foo = "*"
+
+[tool.poetry.group.child_1]
+include-groups = [
+    "shared",
+]
+[tool.poetry.group.child_1.dependencies]
+bar = "*"
+
+[tool.poetry.group.child_2]
+include-groups = [
+    "shared",
+]
+[tool.poetry.group.child_2.dependencies]
+baz = "*"
+
+[tool.poetry.group.shared.dependencies]
+quux = "*"
+"""
+    pyproject_toml = temporary_directory / "pyproject.toml"
+    pyproject_toml.write_text(content)
+    poetry = Factory().create_poetry(temporary_directory)
+    
+    assert len(poetry.package.all_requires) == 10
+    assert sorted(
+        [(dep.name, ",".join(dep.groups)) for dep in poetry.package.all_requires],
+        key = lambda x: x[0] + x[1],
+    ) == [
+        ("bar", "child_1"),
+        ("bar", "root"),
+        ("baz", "child_2"),
+        ("baz", "root"),
+        ("foo", "root"),
+        ("quux", "child_1"),
+        ("quux", "child_2"),
+        ("quux", "root"),
+        ("quux", "root"), # TODO: is this expected?
+        ("quux", "shared"),
+    ]
+
+# non-canonical names still can cycle.
 
 def test_create_poetry_with_unknown_nested_dependency_groups(
     temporary_directory: Path,
