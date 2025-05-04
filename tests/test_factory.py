@@ -1096,6 +1096,7 @@ black = "*"
 """
         ),
         (
+            # Ensure that we can reference groups that are defined later.
             """\
 [project]
 name = "my-package"
