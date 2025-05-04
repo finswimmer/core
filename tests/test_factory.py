@@ -1471,7 +1471,7 @@ quux = "*"
 
 [tool.poetry.group.grandchild]
 include-groups = [
-    "child_1",
+    "child_2",
 ]
 [tool.poetry.group.grandchild.dependencies]
 bar = "*"
@@ -1479,11 +1479,11 @@ bar = "*"
 
     expected = """\
 The Poetry configuration is invalid:
-  - Cyclic dependency group include in root: child-1 -> shared
-  - Cyclic dependency group include in root: child-1 -> shared
-  - Cyclic dependency group include in child-1: grandchild -> child-1
-  - Cyclic dependency group include in child-2: child-1 -> shared
-  - Cyclic dependency group include in shared: child-1 -> shared
+  - Cyclic dependency group include in root: grandchild -> child-2
+  - Cyclic dependency group include in root: grandchild -> child-2
+  - Cyclic dependency group include in child-1: child-2 -> shared
+  - Cyclic dependency group include in child-2: grandchild -> child-2
+  - Cyclic dependency group include in shared: child-2 -> shared
   - Cyclic dependency group include in grandchild: shared -> grandchild
 """
 

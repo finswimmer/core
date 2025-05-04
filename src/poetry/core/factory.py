@@ -669,9 +669,12 @@ class Factory:
                         # Avoid infinite loop; we've already found an error.
                         continue
                     
-                    # TODO: test this scenario
+                    # This must be a union with any existing known ancestors.
+                    # Otherwise, we might accidentally miss a cycle (since we'd
+                    # be tossing out known dependencies). That cycle will be
+                    # caught when we use the share dependency as `group_name`,
+                    # but best to be safe.
                     ancestors[include] = ancestors.get(include, set()).union(child_ancestors)
-                    # ancestors[include] = child_ancestors
                     stack.append(include)
 
     @classmethod
