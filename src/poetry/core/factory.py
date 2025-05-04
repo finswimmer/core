@@ -657,14 +657,11 @@ class Factory:
             stack = [group_name]
             while stack:
                 group = stack.pop()
-
-                canon_group = canonicalize_name(group)
-                current_ancestors = ancestors.get(canon_group, set())
-                child_ancestors = current_ancestors.union({canon_group})
+                current_ancestors = ancestors.get(group, set())
+                child_ancestors = current_ancestors.union({group})
 
                 for include in group_includes.get(group, []):
-                    canon_include = canonicalize_name(include)
-                    if canon_include in child_ancestors:
+                    if include in child_ancestors:
                         result["errors"].append(
                             f"Cyclic dependency group include in {group_name}:"
                             f" {group} -> {include}"
@@ -672,7 +669,9 @@ class Factory:
                         # Avoid infinite loop; we've already found an error.
                         continue
                     
-                    ancestors[canon_include] = child_ancestors
+                    # TODO: test this scenario
+                    ancestors[include] = ancestors.get(include, set()).union(child_ancestors)
+                    # ancestors[include] = child_ancestors
                     stack.append(include)
 
     @classmethod

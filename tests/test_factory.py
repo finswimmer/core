@@ -1431,7 +1431,70 @@ quux = "*"
         ("quux", "shared"),
     ]
 
-# non-canonical names still can cycle.
+def test_create_poetry_with_complicated_cyclic_diamond_dependency_groups(
+    temporary_directory: Path,
+) -> None:
+    content = """\
+[project]
+name = "my-package"
+version = "1.2.3"
+
+[tool.poetry.group.root]
+include-groups = [
+    "child_1",
+    "child_2",
+]
+
+[tool.poetry.group.root.dependencies]
+foo = "*"
+
+[tool.poetry.group.child_1]
+include-groups = [
+    "shared",
+]
+[tool.poetry.group.child_1.dependencies]
+bar = "*"
+
+[tool.poetry.group.child_2]
+include-groups = [
+    "shared",
+]
+[tool.poetry.group.child_2.dependencies]
+baz = "*"
+
+[tool.poetry.group.shared]
+include-groups = [
+    "grandchild",
+]
+[tool.poetry.group.shared.dependencies]
+quux = "*"
+
+[tool.poetry.group.grandchild]
+include-groups = [
+    "child_1",
+]
+[tool.poetry.group.grandchild.dependencies]
+bar = "*"
+"""
+
+    expected = """\
+The Poetry configuration is invalid:
+  - Cyclic dependency group include in root: child-1 -> shared
+  - Cyclic dependency group include in root: child-1 -> shared
+  - Cyclic dependency group include in child-1: grandchild -> child-1
+  - Cyclic dependency group include in child-2: child-1 -> shared
+  - Cyclic dependency group include in shared: child-1 -> shared
+  - Cyclic dependency group include in grandchild: shared -> grandchild
+"""
+
+    assert_invalid_group_including(
+        toml_data=content,
+        expected_error=expected,
+        error_type=RuntimeError,
+        temporary_directory=temporary_directory,
+    )
+
+
 def test_create_poetry_with_noncanonical_names_cyclic_dependency_groups(
     temporary_directory: Path,
 ) -> None:
