@@ -1432,6 +1432,49 @@ quux = "*"
     ]
 
 # non-canonical names still can cycle.
+def test_create_poetry_with_noncanonical_names_cyclic_dependency_groups(
+    temporary_directory: Path,
+) -> None:
+    content = """\
+[project]
+name = "my-package"
+version = "1.2.3"
+
+[tool.poetry.group.GROUP_1]
+include-groups = [
+    "gRoup_2",
+]
+
+[tool.poetry.group.GROUP_1.dependencies]
+foo = "*"
+
+[tool.poetry.group.group_2]
+include-groups = [
+    "groUp_1",
+]
+[tool.poetry.group.group_2.dependencies]
+bar = "*"
+
+[tool.poetry.group.group_3]
+include-groups = [
+    "group_2",
+]
+[tool.poetry.group.group_3.dependencies]
+baz = "*"
+"""
+
+    expected = """\
+The Poetry configuration is invalid:
+  - Cyclic dependency group include in group-1: group-2 -> group-1
+  - Cyclic dependency group include in group-2: group-1 -> group-2
+  - Cyclic dependency group include in group-3: group-1 -> group-2
+"""
+    assert_invalid_group_including(
+        toml_data=content,
+        expected_error=expected,
+        error_type=RuntimeError,
+        temporary_directory=temporary_directory,
+    )
 
 def test_create_poetry_with_unknown_nested_dependency_groups(
     temporary_directory: Path,
