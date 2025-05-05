@@ -355,7 +355,17 @@ class Factory:
                     current_group = package.dependency_group(group_name)
                     for name in include_groups:
                         try:
-                            group_to_include = package.dependency_group(name)
+                            # Neither the current name nor the package's
+                            # dependency group names are guaranteed to be
+                            # normalized. Compare the normalized names to find
+                            # the actual key to use.
+                            all_group_names = package.dependency_group_names()
+                            group_name_to_use = next(
+                                (n
+                                for n in all_group_names
+                                if canonicalize_name(n) == canonicalize_name(name)))
+
+                            group_to_include = package.dependency_group(group_name_to_use)
                         except ValueError as e:
                             raise ValueError(
                                 f"Group '{group_name}' includes group '{name}'"

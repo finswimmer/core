@@ -1077,8 +1077,35 @@ build-backend = "some.api.we.do.not.care.about"
 @pytest.mark.parametrize(
     ("group_name", "included_group_name", "in_order"),
     [
-       ("testing", "testing", True),
-       ("testing", "testing", False) 
+        ("testing", "testing", True),
+        ("testing", "testing", False),
+        ("testing", "TESTING", True),
+        ("testing", "TESTING", False),
+        ("group_a", "group-a", True),
+        ("group_a", "group-a", False),
+
+        # https://packaging.python.org/en/latest/specifications/name-normalization/#valid-non-normalized-names
+        # friendly-bard
+        # Friendly-Bard
+        # FRIENDLY-BARD
+        # friendly.bard
+        # friendly_bard
+        # friendly--bard
+        # FrIeNdLy-._.-bArD
+        ("friendly-bard", "friendly-bard", True),
+        ("friendly-bard", "friendly-bard", False),
+        ("friendly-bard", "Friendly-Bard", True),
+        ("friendly-bard", "Friendly-Bard", False),
+        ("friendly-bard", "FRIENDLY-BARD", True),
+        ("friendly-bard", "FRIENDLY-BARD", False),
+        ("friendly-bard", "friendly.bard", True),
+        ("friendly-bard", "friendly.bard", False),
+        ("friendly-bard", "friendly_bard", True),
+        ("friendly-bard", "friendly_bard", False),
+        ("friendly-bard", "friendly--bard", True),
+        ("friendly-bard", "friendly--bard", False),
+        ("friendly-bard", "FrIeNdLy-._.-bArD", True),
+        ("friendly-bard", "FrIeNdLy-._.-bArD", False),
     ])
 def test_create_poetry_with_nested_dependency_groups(group_name: str, included_group_name: str, in_order: bool, temporary_directory: Path) -> None:
     pyproject_toml = temporary_directory / "pyproject.toml"
@@ -1130,9 +1157,9 @@ pytest-cov ="*"
     ) == [
         ("black", "dev"),
         ("pytest-cov", "dev"),
-        ("pytest-cov", "testing"),
+        ("pytest-cov", canonicalize_name(group_name)),
         ("pytest", "dev"),
-        ("pytest", "testing"),
+        ("pytest", canonicalize_name(group_name)),
     ]
 
 
@@ -1355,13 +1382,13 @@ quux = "*"
         [(dep.name, ",".join(dep.groups)) for dep in poetry.package.all_requires],
         key = lambda x: x[0] + x[1],
     ) == [
-        ("bar", "child_1"),
+        ("bar", "child-1"),
         ("bar", "root"),
-        ("baz", "child_2"),
+        ("baz", "child-2"),
         ("baz", "root"),
         ("foo", "root"),
-        ("quux", "child_1"),
-        ("quux", "child_2"),
+        ("quux", "child-1"),
+        ("quux", "child-2"),
         ("quux", "root"),
         ("quux", "root"), # TODO: is this expected?
         ("quux", "shared"),
@@ -1417,16 +1444,16 @@ quux = "*"
         [(dep.name, ",".join(dep.groups)) for dep in poetry.package.all_requires],
         key = lambda x: x[0] + x[1],
     ) == [
-        ("bar", "child_1"),
+        ("bar", "child-1"),
         ("bar", "root"),
-        ("bax", "child_2"),
+        ("bax", "child-2"),
         ("bax", "grandchild"),
         ("bax", "root"),
-        ("baz", "child_2"),
+        ("baz", "child-2"),
         ("baz", "root"),
         ("foo", "root"),
-        ("quux", "child_1"),
-        ("quux", "child_2"),
+        ("quux", "child-1"),
+        ("quux", "child-2"),
         ("quux", "grandchild"),
         ("quux", "root"),
         ("quux", "root"), # TODO: is this expected?

@@ -107,7 +107,7 @@ class DependencyGroup:
         their dependencies, associating them with the current group.
         """
         return [
-            dependency.with_groups([self.name])
+            dependency.with_groups([canonicalize_name(self.name)])
             for dependency_group in self._included_dependency_groups.values()
             for dependency in dependency_group.dependencies
         ]
