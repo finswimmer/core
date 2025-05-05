@@ -1073,49 +1073,32 @@ build-backend = "some.api.we.do.not.care.about"
 
     assert set(poetry.build_system_dependencies) == expected
 
-
+@pytest.mark.parametrize("in_order", [True, False])
 @pytest.mark.parametrize(
-    ("group_name", "included_group_name", "in_order"),
+    ("group_name", "included_group_name"),
     [
-        ("testing", "testing", True),
-        ("testing", "testing", False),
-        ("testing", "TESTING", True),
-        ("testing", "TESTING", False),
-        ("group_a", "group-a", True),
-        ("group_a", "group-a", False),
+        ("testing", "testing"),
+        ("testing", "TESTING"),
+        ("group_a", "group-a"),
 
         # Examples from the PEP 508 spec
         # https://packaging.python.org/en/latest/specifications/name-normalization/#valid-non-normalized-names
-        ("friendly-bard", "friendly-bard", True),
-        ("friendly-bard", "friendly-bard", False),
-        ("friendly-bard", "Friendly-Bard", True),
-        ("friendly-bard", "Friendly-Bard", False),
-        ("friendly-bard", "FRIENDLY-BARD", True),
-        ("friendly-bard", "FRIENDLY-BARD", False),
-        ("friendly-bard", "friendly.bard", True),
-        ("friendly-bard", "friendly.bard", False),
-        ("friendly-bard", "friendly_bard", True),
-        ("friendly-bard", "friendly_bard", False),
-        ("friendly-bard", "friendly--bard", True),
-        ("friendly-bard", "friendly--bard", False),
-        ("friendly-bard", "FrIeNdLy-._.-bArD", True),
-        ("friendly-bard", "FrIeNdLy-._.-bArD", False),
+        ("friendly-bard", "friendly-bard"),
+        ("friendly-bard", "Friendly-Bard"),
+        ("friendly-bard", "FRIENDLY-BARD"),
+        ("friendly-bard", "friendly.bard"),
+        ("friendly-bard", "friendly_bard"),
+        ("friendly-bard", "friendly--bard"),
+        ("friendly-bard", "FrIeNdLy-._.-bArD"),
 
-        ("friendly-bard", "friendly-bard", True),
-        ("friendly-bard", "friendly-bard", False),
-        ("friendly-Bard", "friendly-bard", True),
-        ("friendly-Bard", "friendly-bard", False),
-        ("FRIENDLY-BARD", "friendly-bard", True),
-        ("FRIENDLY-BARD", "friendly-bard", False),
-        ("friendly.bard", "friendly-bard", True),
-        ("friendly.bard", "friendly-bard", False),
-        ("friendly_bard", "friendly-bard", True),
-        ("friendly_bard", "friendly-bard", False),
-        ("friendly--bard", "friendly-bard", True),
-        ("friendly--bard", "friendly-bard", False),
-        ("FrIeNdLy-._.-bArD", "friendly-bard", True),
-        ("FrIeNdLy-._.-bArD", "friendly-bard", False),
-    ])
+        ("friendly-Bard", "friendly-bard"),
+        ("FRIENDLY-BARD", "friendly-bard"),
+        ("friendly.bard", "friendly-bard"),
+        ("friendly_bard", "friendly-bard"),
+        ("friendly--bard", "friendly-bard"),
+        ("FrIeNdLy-._.-bArD", "friendly-bard"),
+    ]
+)
 def test_create_poetry_with_nested_dependency_groups(group_name: str, included_group_name: str, in_order: bool, temporary_directory: Path) -> None:
     pyproject_toml = temporary_directory / "pyproject.toml"
 
