@@ -1084,14 +1084,8 @@ build-backend = "some.api.we.do.not.care.about"
         ("group_a", "group-a", True),
         ("group_a", "group-a", False),
 
+        # Examples from the PEP 508 spec
         # https://packaging.python.org/en/latest/specifications/name-normalization/#valid-non-normalized-names
-        # friendly-bard
-        # Friendly-Bard
-        # FRIENDLY-BARD
-        # friendly.bard
-        # friendly_bard
-        # friendly--bard
-        # FrIeNdLy-._.-bArD
         ("friendly-bard", "friendly-bard", True),
         ("friendly-bard", "friendly-bard", False),
         ("friendly-bard", "Friendly-Bard", True),
@@ -1113,15 +1107,14 @@ build-backend = "some.api.we.do.not.care.about"
         ("friendly-Bard", "friendly-bard", False),
         ("FRIENDLY-BARD", "friendly-bard", True),
         ("FRIENDLY-BARD", "friendly-bard", False),
-        # ("friendly.bard", "friendly-bard", True),
-        # ("friendly.bard", "friendly-bard", False),
+        ("friendly.bard", "friendly-bard", True),
+        ("friendly.bard", "friendly-bard", False),
         ("friendly_bard", "friendly-bard", True),
         ("friendly_bard", "friendly-bard", False),
         ("friendly--bard", "friendly-bard", True),
         ("friendly--bard", "friendly-bard", False),
-        # ("FrIeNdLy-._.-bArD", "friendly-bard", True),
-        # ("FrIeNdLy-._.-bArD", "friendly-bard", False),
-
+        ("FrIeNdLy-._.-bArD", "friendly-bard", True),
+        ("FrIeNdLy-._.-bArD", "friendly-bard", False),
     ])
 def test_create_poetry_with_nested_dependency_groups(group_name: str, included_group_name: str, in_order: bool, temporary_directory: Path) -> None:
     pyproject_toml = temporary_directory / "pyproject.toml"
@@ -1144,6 +1137,7 @@ include-groups = [
 [tool.poetry.group.dev.dependencies]
 black = "*"
 """
+    # The dev group refers to a group that is defined after it.
     out_of_order_content = """\
 [project]
 name = "my-package"
@@ -1161,8 +1155,14 @@ pytest = "*"
 pytest-cov ="*"
 """
 
+    # Generate the content. If `group_name` has a `.` in it, we "escape" it with
+    # quotes to make it a valid TOML key.
     base_content = in_order_content if in_order else out_of_order_content
-    content = base_content.replace(replace_group_name, group_name).replace(replace_included_group_name, included_group_name)
+    group_name_to_use = (
+        group_name if "." not in group_name else f'"{group_name}"'
+    )
+    content = base_content.replace(replace_group_name, group_name_to_use).replace(replace_included_group_name, included_group_name)
+
     pyproject_toml.write_text(content)
     poetry = Factory().create_poetry(temporary_directory)
 
