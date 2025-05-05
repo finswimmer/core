@@ -1075,49 +1075,51 @@ build-backend = "some.api.we.do.not.care.about"
 
 
 @pytest.mark.parametrize(
-    ("content"),
+    ("group_name", "included_group_name", "in_order"),
     [
-        (
-            """\
-[project]
-name = "my-package"
-version = "1.2.3"
-
-[tool.poetry.group.testing.dependencies]
-pytest = "*"
-pytest-cov ="*"
-
-[tool.poetry.group.dev]
-include-groups = [
-    "testing",
-]
-[tool.poetry.group.dev.dependencies]
-black = "*"
-"""
-        ),
-        (
-            # Ensure that we can reference groups that are defined later.
-            """\
-[project]
-name = "my-package"
-version = "1.2.3"
-
-[tool.poetry.group.dev]
-include-groups = [
-    "testing",
-]
-[tool.poetry.group.dev.dependencies]
-black = "*"
-
-[tool.poetry.group.testing.dependencies]
-pytest = "*"
-pytest-cov ="*"
-"""
-        ),
-    ],
-    ids=["in-order", "out-of-order"])
-def test_create_poetry_with_nested_dependency_groups(content: str, temporary_directory: Path) -> None:
+       ("testing", "testing", True),
+       ("testing", "testing", False) 
+    ])
+def test_create_poetry_with_nested_dependency_groups(group_name: str, included_group_name: str, in_order: bool, temporary_directory: Path) -> None:
     pyproject_toml = temporary_directory / "pyproject.toml"
+
+    replace_group_name = "%REPLACE_GROUP_NAME%"
+    replace_included_group_name = "%REPLACE_INCLUDED_GROUP_NAME%"
+    in_order_content = """\
+[project]
+name = "my-package"
+version = "1.2.3"
+
+[tool.poetry.group.%REPLACE_GROUP_NAME%.dependencies]
+pytest = "*"
+pytest-cov ="*"
+
+[tool.poetry.group.dev]
+include-groups = [
+    "%REPLACE_INCLUDED_GROUP_NAME%",
+]
+[tool.poetry.group.dev.dependencies]
+black = "*"
+"""
+    out_of_order_content = """\
+[project]
+name = "my-package"
+version = "1.2.3"
+
+[tool.poetry.group.dev]
+include-groups = [
+    "%REPLACE_INCLUDED_GROUP_NAME%",
+]
+[tool.poetry.group.dev.dependencies]
+black = "*"
+
+[tool.poetry.group.%REPLACE_GROUP_NAME%.dependencies]
+pytest = "*"
+pytest-cov ="*"
+"""
+
+    base_content = in_order_content if in_order else out_of_order_content
+    content = base_content.replace(replace_group_name, group_name).replace(replace_included_group_name, included_group_name)
     pyproject_toml.write_text(content)
     poetry = Factory().create_poetry(temporary_directory)
 
