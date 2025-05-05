@@ -1106,6 +1106,22 @@ build-backend = "some.api.we.do.not.care.about"
         ("friendly-bard", "friendly--bard", False),
         ("friendly-bard", "FrIeNdLy-._.-bArD", True),
         ("friendly-bard", "FrIeNdLy-._.-bArD", False),
+
+        ("friendly-bard", "friendly-bard", True),
+        ("friendly-bard", "friendly-bard", False),
+        ("friendly-Bard", "friendly-bard", True),
+        ("friendly-Bard", "friendly-bard", False),
+        ("FRIENDLY-BARD", "friendly-bard", True),
+        ("FRIENDLY-BARD", "friendly-bard", False),
+        # ("friendly.bard", "friendly-bard", True),
+        # ("friendly.bard", "friendly-bard", False),
+        ("friendly_bard", "friendly-bard", True),
+        ("friendly_bard", "friendly-bard", False),
+        ("friendly--bard", "friendly-bard", True),
+        ("friendly--bard", "friendly-bard", False),
+        # ("FrIeNdLy-._.-bArD", "friendly-bard", True),
+        # ("FrIeNdLy-._.-bArD", "friendly-bard", False),
+
     ])
 def test_create_poetry_with_nested_dependency_groups(group_name: str, included_group_name: str, in_order: bool, temporary_directory: Path) -> None:
     pyproject_toml = temporary_directory / "pyproject.toml"
@@ -1154,13 +1170,13 @@ pytest-cov ="*"
     assert sorted(
         [(dep.name, ",".join(dep.groups)) for dep in poetry.package.all_requires],
         key = lambda x: x[0] + x[1],
-    ) == [
+    ) == sorted([
         ("black", "dev"),
         ("pytest-cov", "dev"),
-        ("pytest-cov", canonicalize_name(group_name)),
+        ("pytest-cov", group_name),
         ("pytest", "dev"),
-        ("pytest", canonicalize_name(group_name)),
-    ]
+        ("pytest", group_name),
+    ], key = lambda x: x[0] + x[1])
 
 
 def assert_invalid_group_including(
@@ -1382,13 +1398,13 @@ quux = "*"
         [(dep.name, ",".join(dep.groups)) for dep in poetry.package.all_requires],
         key = lambda x: x[0] + x[1],
     ) == [
-        ("bar", "child-1"),
+        ("bar", "child_1"),
         ("bar", "root"),
-        ("baz", "child-2"),
+        ("baz", "child_2"),
         ("baz", "root"),
         ("foo", "root"),
-        ("quux", "child-1"),
-        ("quux", "child-2"),
+        ("quux", "child_1"),
+        ("quux", "child_2"),
         ("quux", "root"),
         ("quux", "root"), # TODO: is this expected?
         ("quux", "shared"),
@@ -1444,16 +1460,16 @@ quux = "*"
         [(dep.name, ",".join(dep.groups)) for dep in poetry.package.all_requires],
         key = lambda x: x[0] + x[1],
     ) == [
-        ("bar", "child-1"),
+        ("bar", "child_1"),
         ("bar", "root"),
-        ("bax", "child-2"),
+        ("bax", "child_2"),
         ("bax", "grandchild"),
         ("bax", "root"),
-        ("baz", "child-2"),
+        ("baz", "child_2"),
         ("baz", "root"),
         ("foo", "root"),
-        ("quux", "child-1"),
-        ("quux", "child-2"),
+        ("quux", "child_1"),
+        ("quux", "child_2"),
         ("quux", "grandchild"),
         ("quux", "root"),
         ("quux", "root"), # TODO: is this expected?

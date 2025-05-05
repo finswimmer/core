@@ -371,6 +371,11 @@ class Factory:
                                 f"Group '{group_name}' includes group '{name}'"
                                 " which is not defined."
                             ) from e
+                        except StopIteration as e:
+                            raise ValueError(
+                                f"Group '{group_name}' includes group '{name}'"
+                                " which is not defined."
+                            ) from e
 
                         current_group.include_dependency_group(group_to_include)
 
