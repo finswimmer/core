@@ -1149,6 +1149,9 @@ pytest-cov ="*"
     pyproject_toml.write_text(content)
     poetry = Factory().create_poetry(temporary_directory)
 
+    # Groups are reported internally using their canonical names.
+    canonical_name = canonicalize_name(group_name)
+
     assert len(poetry.package.all_requires) == 5
     assert sorted(
         [(dep.name, ",".join(dep.groups)) for dep in poetry.package.all_requires],
@@ -1156,9 +1159,9 @@ pytest-cov ="*"
     ) == sorted([
         ("black", "dev"),
         ("pytest-cov", "dev"),
-        ("pytest-cov", group_name),
+        ("pytest-cov", canonical_name),
         ("pytest", "dev"),
-        ("pytest", group_name),
+        ("pytest", canonical_name),
     ], key = lambda x: x[0] + x[1])
 
 
@@ -1381,13 +1384,13 @@ quux = "*"
         [(dep.name, ",".join(dep.groups)) for dep in poetry.package.all_requires],
         key = lambda x: x[0] + x[1],
     ) == [
-        ("bar", "child_1"),
+        ("bar", "child-1"),
         ("bar", "root"),
-        ("baz", "child_2"),
+        ("baz", "child-2"),
         ("baz", "root"),
         ("foo", "root"),
-        ("quux", "child_1"),
-        ("quux", "child_2"),
+        ("quux", "child-1"),
+        ("quux", "child-2"),
         ("quux", "root"),
         ("quux", "root"), # TODO: is this expected?
         ("quux", "shared"),
@@ -1443,16 +1446,16 @@ quux = "*"
         [(dep.name, ",".join(dep.groups)) for dep in poetry.package.all_requires],
         key = lambda x: x[0] + x[1],
     ) == [
-        ("bar", "child_1"),
+        ("bar", "child-1"),
         ("bar", "root"),
-        ("bax", "child_2"),
+        ("bax", "child-2"),
         ("bax", "grandchild"),
         ("bax", "root"),
-        ("baz", "child_2"),
+        ("baz", "child-2"),
         ("baz", "root"),
         ("foo", "root"),
-        ("quux", "child_1"),
-        ("quux", "child_2"),
+        ("quux", "child-1"),
+        ("quux", "child-2"),
         ("quux", "grandchild"),
         ("quux", "root"),
         ("quux", "root"), # TODO: is this expected?
