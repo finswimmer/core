@@ -1626,3 +1626,35 @@ include-groups = [
         ("black", "all"),
         ("pytest", "all"),
     ]
+
+def test_create_poetry_with_nested_similar_dependencies(temporary_directory: Path) -> None:
+    pyproject_toml = temporary_directory / "pyproject.toml"
+    content = """\
+[project]
+name = "my-package"
+version = "1.2.3"
+
+[tool.poetry.group.parent.dependencies]
+foo = "*"
+
+[tool.poetry.group.parent]
+include-groups = [
+    "child",
+]
+
+[tool.poetry.group.child.dependencies]
+foo = "*"
+
+"""
+
+    pyproject_toml.write_text(content)
+
+    poetry = Factory().create_poetry(temporary_directory)
+    assert len(poetry.package.all_requires) == 3
+    assert [
+        (dep.name, ",".join(dep.groups)) for dep in poetry.package.all_requires
+    ] == [
+        ("foo", "parent"),
+        ("foo", "parent"), # TODO: dupe!
+        ("foo", "child"),
+    ]
