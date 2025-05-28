@@ -655,7 +655,7 @@ class Factory:
                 ]
 
         for group_name in group_includes:
-            ancestors = defaultdict(set[NormalizedName])
+            ancestors: defaultdict[NormalizedName, set[NormalizedName]] = defaultdict(set)
             stack = [group_name]
             while stack:
                 group = stack.pop()
