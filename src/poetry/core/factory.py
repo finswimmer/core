@@ -647,7 +647,7 @@ class Factory:
         """Ensure that dependency groups do not include themselves."""
         config = toml_data.setdefault("tool", {}).setdefault("poetry", {})
 
-        group_includes = {}
+        group_includes: dict[NormalizedName, list[NormalizedName]] = {}
         for group_name, group_config in config.get("group", {}).items():
             if include_groups := group_config.get("include-groups", []):
                 group_includes[canonicalize_name(group_name)] = [
@@ -655,7 +655,7 @@ class Factory:
                 ]
 
         for group_name in group_includes:
-            ancestors = defaultdict(set[str])
+            ancestors = defaultdict(set[NormalizedName])
             stack = [group_name]
             while stack:
                 group = stack.pop()
