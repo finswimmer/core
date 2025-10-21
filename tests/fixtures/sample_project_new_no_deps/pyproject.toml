@@ -1,0 +1,35 @@
+[project]
+name = "my-package"
+version = "1.2.3"
+description = "Some description."
+readme = "README.rst"
+requires-python = ">=3.6"
+license = "MIT"
+keywords = ["packaging", "dependency", "poetry"]
+authors = [
+    { name = "Sébastien Eustace", email = "sebastien@eustace.io" }
+]
+maintainers = [
+    { name = "Sébastien Eustace", email = "sebastien@eustace.io" }
+]
+
+classifiers = [
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+
+# Requirements
+dependencies = [
+]
+
+
+[project.urls]
+homepage = "https://python-poetry.org"
+repository = "https://github.com/python-poetry/poetry"
+documentation = "https://python-poetry.org/docs"
+
+[project.scripts]
+my-script = "my_package:main"
+
+[project.entry-points."blogtool.parsers"]
+".rst" = "some_module::SomeClass"

@@ -313,6 +313,47 @@ def test_create_poetry(project: str) -> None:
         ]
 
 
+def test_create_poetry_with_empty_dependencies() -> None:
+    project = "sample_project_new_no_deps"
+    poetry = Factory().create_poetry(fixtures_dir / project)
+
+    assert poetry.is_package_mode
+
+    package = poetry.package
+
+    assert "main" in package._dependency_groups
+    assert package._dependency_groups[canonicalize_name("main")].dependencies == []
+
+    assert package.name == "my-package"
+    assert package.version.text == "1.2.3"
+    assert package.description == "Some description."
+    assert package.authors == ["Sébastien Eustace <sebastien@eustace.io>"]
+    assert package.maintainers == ["Sébastien Eustace <sebastien@eustace.io>"]
+    assert package.license is None
+    assert package.license_expression == "MIT"
+
+    assert (
+        package.readmes[0].relative_to(fixtures_dir).as_posix()
+        == f"{project}/README.rst"
+    )
+    assert package.homepage == "https://python-poetry.org"
+    assert package.repository_url == "https://github.com/python-poetry/poetry"
+    assert package.keywords == ["packaging", "dependency", "poetry"]
+
+    assert package.python_versions == ">=3.6"
+    assert str(package.python_constraint) == ">=3.6"
+
+    assert package.requires == []
+    classifiers = package.classifiers
+
+    assert classifiers == [
+        "Topic :: Software Development :: Build Tools",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+    ]
+
+    assert package.all_classifiers == package.classifiers
+
+
 @pytest.mark.parametrize(
     "project", ["sample_project_with_groups", "sample_project_with_groups_new"]
 )
